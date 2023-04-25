@@ -1,58 +1,50 @@
 const express = require("express");
-const app = express();
 const cors = require("cors");
-const {
-  generateBalances,
-  recoverPublicKeyFromSignature,
-  getAddress,
-} = require("./helpers");
-const { toHex } = require("ethereum-cryptography/utils");
+const crypto = require("./crypto");
 
-const PORT = process.env.PORT || 3042;
+const app = express();
+const port = 3042;
 
 app.use(cors());
 app.use(express.json());
 
-let balances = [];
-app.get("/generate-balances", (req, res) => {
-  balances = generateBalances();
-  res.json(balances);
-});
+const balances = new Map([
+  ["0x6e27926a87b861b7a3fb1093c2603c5309882897", 100], // arda
+  ["0x984585d83d9775a80383e9b0322e69a25e5eb8e6", 50], // edu
+  ["0x619f04dd7936e47723c99815f74759afb38a113a", 75], // sam
+]);
 
 app.get("/balance/:address", (req, res) => {
   const { address } = req.params;
-  const balance = balances.find((balance) => balance.address === address);
-  res.send(balance);
+  const balance = balances.get(address) || 0;
+  res.send({ balance });
 });
 
 app.post("/send", (req, res) => {
-  // Receive signature from client
-  const { msg, signature, recoveryBit } = req.body;
-  const { amount, recipient } = msg;
+  const { message, signature } = req.body;
+  const { recipient, amount } = message;
 
-  const publicKey = recoverPublicKeyFromSignature(msg, signature, recoveryBit);
-  const sender = `0x${toHex(getAddress(publicKey))}`; // Get wallet address from public key
+  const pubKey = crypto.signatureToPubKey(message, signature);
+  const sender = crypto.pubKeyToAddress(pubKey);
 
-  const senderIndex = balances.findIndex(
-    (balance) => balance.address === sender
-  );
-  const recipientIndex = balances.findIndex(
-    (balance) => balance.address === recipient
-  );
+  setInitialBalance(sender);
+  setInitialBalance(recipient);
 
-  if (senderIndex < 0 || recipientIndex < 0)
-    return res.status(400).send({ message: "Invalid address" });
-
-  if (balances[senderIndex].balance < amount) {
-    return res.status(400).send({ message: "Not enough funds!" });
+  if (balances.get(sender) < amount) {
+    res.status(400).send({ message: "Not enough funds!" });
+  } else {
+    balances.set(sender, balances.get(sender) - amount);
+    balances.set(recipient, balances.get(recipient) + amount);
+    res.send({ balance: balances.get(sender) });
   }
-
-  balances[senderIndex].balance -= amount;
-  balances[recipientIndex].balance += amount;
-
-  res.send({ balance: balances[senderIndex].balance });
 });
 
-app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}!`);
+app.listen(port, () => {
+  console.log(`Listening on port ${port}!`);
 });
+
+function setInitialBalance(address) {
+  if (!balances[address]) {
+    balances[address] = 0;
+  }
+}

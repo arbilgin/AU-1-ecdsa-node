@@ -69,7 +69,6 @@ input {
   flex-direction: column;
 
   .balance {
-    text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 400;
     font-size: 0.9em;
@@ -83,21 +82,4 @@ input {
 .transfer {
   display: flex;
   flex-direction: column;
-}
-
-.balances {
-  max-width: 100%;
-  overflow: auto;
-  background-color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-}
-
-.balance_container {
-  border: 2px solid black;
-  border-radius: 8px;
-  background-color: rgb(241, 241, 241);
-  margin: 0.5rem;
-  padding: 0.5rem;
-  width: fit-content;
 }

@@ -29,3 +29,9 @@ The server folder contains a node.js server using [express](https://expressjs.co
 The application should connect to the default server port (3042) automatically! 
 
 _Hint_ - Use [nodemon](https://www.npmjs.com/package/nodemon) instead of `node` to automatically restart the server on any changes.
+
+### Description
+
+I decided to create a fake wallet on the client side which takes care of private/public keys of users.
+
+So, on the client side, you just select a user and it will sign the transaction with the user private key, inside the fake wallet. Then, the transaction is sent to the server. The server only knows user addresses. It will retrieve the sender address from the signature. The recipient field is also an address and not a public key. Then the server updates the balance map.

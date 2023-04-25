@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { hashMessage, signMessage } from "./helpers";
 import server from "./server";
-import { toHex } from "ethereum-cryptography/utils";
+import wallet from "./LocalWallet";
 
-function Transfer({ setBalance, privateKey }) {
+/**
+ * Manage coin transfer.
+ */
+function Transfer({ user, setBalance }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
 
@@ -12,28 +14,28 @@ function Transfer({ setBalance, privateKey }) {
   async function transfer(evt) {
     evt.preventDefault();
 
-    // Sign message here to create signature
-    const msg = {
+    // build the transaction payload composed of
+    // the message itself (amount to transfer and recipient) and
+    // the signature of the transaction build from the user private key
+    // and the message, inside the wallet.
+    const message = {
       amount: parseInt(sendAmount),
       recipient,
     };
-    const hashedMessage = hashMessage(msg);
-    const [signature, recoveryBit] = await signMessage(
-      hashedMessage,
-      privateKey
-    );
+    const signature = await wallet.sign(user, message);
+    const transaction = {
+      message,
+      signature,
+    };
 
     try {
       const {
         data: { balance },
-      } = await server.post(`send`, {
-        msg,
-        signature: toHex(signature),
-        recoveryBit,
-      });
+      } = await server.post(`send`, transaction);
+
       setBalance(balance);
     } catch (ex) {
-      alert(ex.response.data.message);
+      alert(ex);
     }
   }
 
@@ -46,17 +48,15 @@ function Transfer({ setBalance, privateKey }) {
         <input
           placeholder="1, 2, 3..."
           value={sendAmount}
-          onChange={setValue(setSendAmount)}
-        ></input>
+          onChange={setValue(setSendAmount)}></input>
       </label>
 
       <label>
         Recipient
         <input
-          placeholder="Type an address, for example: 0x2"
+          placeholder="Type an user address, for example: BE13..."
           value={recipient}
-          onChange={setValue(setRecipient)}
-        ></input>
+          onChange={setValue(setRecipient)}></input>
       </label>
 
       <input type="submit" className="button" value="Transfer" />
